@@ -10,7 +10,7 @@ usage() {
 Usage: moza-vm [command]
 
   start     Start the VM, hand it your Moza devices, open its window (default)
-  stop      Shut Windows down; the wheel returns to Linux
+  stop      Shut the VM down; the wheel returns to Linux
   release   Give the wheel back to Linux without shutting the VM down
   status    Show the VM state and where each Moza device is
 EOF
@@ -36,11 +36,11 @@ cmd_start() {
     virsh_ start "$VM_NAME" >/dev/null
   fi
   attach_all
-  log "opening VM window. Close it any time; shut Windows down to get the wheel back."
+  log "opening Pit House. Close Pit House when you're done; the VM shuts down and the wheel returns to Linux."
   virt-viewer --connect "$LIBVIRT_URI" --wait "$VM_NAME" >/dev/null 2>&1 || true
   if vm_running; then
-    log "VM is still running and still has your wheel."
-    log "run 'moza-vm stop' (or shut Windows down) before gaming on Linux."
+    log "VM is still running in the background and still has your wheel."
+    log "run 'moza-vm' to reopen the window, or 'moza-vm stop' before gaming on Linux."
   else
     log "VM is off. Your wheel is back on Linux."
   fi

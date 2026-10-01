@@ -11,6 +11,7 @@ if [[ "${1:-}" == "--delete-vm" ]] && vm_exists; then
   vm_running && virsh_ destroy "$VM_NAME" >/dev/null
   virsh_ undefine "$VM_NAME" --remove-all-storage
   sudo rm -rf /var/lib/libvirt/images/moza-vm
+  rm -rf "${XDG_CACHE_HOME:-$HOME/.cache}/moza-vm"
   log "deleted VM '$VM_NAME'"
 fi
 

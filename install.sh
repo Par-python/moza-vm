@@ -28,7 +28,8 @@ log "installing KVM / libvirt packages..."
 sudo apt-get update -qq
 sudo apt-get install -y \
   qemu-system-x86 qemu-utils libvirt-daemon-system libvirt-clients \
-  virtinst virt-manager virt-viewer usbutils
+  virtinst virt-manager virt-viewer usbutils \
+  xorriso curl python3
 
 sudo systemctl enable --now libvirtd
 [[ -e /dev/kvm ]] || die "/dev/kvm is missing even though the CPU supports virtualization. Try rebooting."
@@ -95,4 +96,4 @@ if [[ $need_relogin == 1 ]]; then
   log "IMPORTANT: you were added to the libvirt/kvm groups. Log out and back in"
   log "(or reboot) before running create-vm.sh."
 fi
-log "next step: ./create-vm.sh /path/to/Win10.iso"
+log "next step: ./create-vm.sh /path/to/Win10.iso   (hands-off, 30-60 min)"

@@ -10,6 +10,7 @@ MOZA_USB_IDS="346e 0483:df11"
 VM_MEMORY_MB=4096
 VM_VCPUS=2
 VM_DISK_GB=40
+VM_RESOLUTION="1600x900"
 
 # shellcheck source=moza-vm.conf
 [[ -r "$CONF_FILE" ]] && . "$CONF_FILE"
