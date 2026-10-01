@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# moza-vm: run Moza Pit House in a Windows VM with the wheel passed through.
+set -euo pipefail
+
+# shellcheck source=lib/common.sh
+. "$(dirname "$(readlink -f "$0")")/../lib/common.sh"
+
+usage() {
+  cat <<EOF
+Usage: moza-vm [command]
+
+  start     Start the VM, hand it your Moza devices, open its window (default)
+  stop      Shut Windows down; the wheel returns to Linux
+  release   Give the wheel back to Linux without shutting the VM down
+  status    Show the VM state and where each Moza device is
+EOF
+}
+
+attach_all() {
+  local found=0 bus dev id
+  while read -r bus dev id; do
+    found=1
+    if attach_device "$bus" "$dev"; then
+      log "wheel device $id ($bus/$dev) -> VM"
+    else
+      log "warning: could not attach $id ($bus/$dev)"
+    fi
+  done < <(list_moza_devices)
+  [[ $found == 1 ]] || log "no Moza devices found. Plug the wheelbase in; it will attach automatically."
+}
+
+cmd_start() {
+  vm_exists || die "VM '$VM_NAME' not found. Run create-vm.sh first."
+  if ! vm_running; then
+    log "starting $VM_NAME..."
+    virsh_ start "$VM_NAME" >/dev/null
+  fi
+  attach_all
+  log "opening VM window. Close it any time; shut Windows down to get the wheel back."
+  virt-viewer --connect "$LIBVIRT_URI" --wait "$VM_NAME" >/dev/null 2>&1 || true
+  if vm_running; then
+    log "VM is still running and still has your wheel."
+    log "run 'moza-vm stop' (or shut Windows down) before gaming on Linux."
+  else
+    log "VM is off. Your wheel is back on Linux."
+  fi
+}
+
+cmd_stop() {
+  vm_running || { log "VM is not running."; return 0; }
+  log "asking Windows to shut down..."
+  virsh_ shutdown "$VM_NAME" >/dev/null
+  local _
+  for _ in $(seq 1 90); do
+    vm_running || { log "VM is off. Your wheel is back on Linux."; return 0; }
+    sleep 1
+  done
+  die "Windows didn't shut down within 90s. Check the VM window, or force it off with: virsh -c $LIBVIRT_URI destroy $VM_NAME (unsafe during a firmware update)"
+}
+
+cmd_release() {
+  vm_running || { log "VM is not running; the wheel is already on Linux."; return 0; }
+  local bus dev id
+  while read -r bus dev id; do
+    detach_device "$bus" "$dev" && log "released $id ($bus/$dev)"
+  done < <(list_moza_devices)
+  log "note: a device that reconnects while the VM runs is grabbed again."
+}
+
+cmd_status() {
+  if ! vm_exists; then
+    log "VM '$VM_NAME' does not exist yet."
+  elif vm_running; then
+    log "VM '$VM_NAME' is running."
+  else
+    log "VM '$VM_NAME' is off."
+  fi
+  local bus dev id where
+  while read -r bus dev id; do
+    where="Linux"
+    vm_running && is_attached "$bus" "$dev" && where="VM"
+    log "  $id at $bus/$dev -> $where"
+  done < <(list_moza_devices)
+}
+
+case "${1:-start}" in
+  start)   cmd_start ;;
+  stop)    cmd_stop ;;
+  release) cmd_release ;;
+  status)  cmd_status ;;
+  -h|--help|help) usage ;;
+  *) usage; exit 1 ;;
+esac

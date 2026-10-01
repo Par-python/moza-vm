@@ -1,0 +1,8 @@
+name: shellcheck
+on: [push, pull_request]
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck -x -s bash install.sh create-vm.sh uninstall.sh bin/moza-vm lib/moza-hotplug lib/common.sh

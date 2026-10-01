@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Called (via systemd-run) by the udev rule when a Moza device appears or
+# disappears. If the VM is running, the device follows it, which is what keeps
+# a firmware update going when the wheelbase reboots mid-flash.
+#
+# Usage: moza-hotplug add|remove BUSNUM DEVNUM
+set -euo pipefail
+
+# shellcheck source=lib/common.sh
+. "$(dirname "$(readlink -f "$0")")/common.sh"
+
+action="${1:-}" bus="${2:-}" dev="${3:-}"
+[[ -n "$action" && -n "$bus" && -n "$dev" ]] || die "usage: moza-hotplug add|remove BUSNUM DEVNUM"
+
+vm_running || exit 0
+
+case "$action" in
+  add)
+    # Give the kernel a moment to finish enumerating the device.
+    sleep 1
+    if attach_device "$bus" "$dev"; then
+      logger -t moza-vm "attached USB $bus/$dev to $VM_NAME"
+    else
+      logger -t moza-vm "failed to attach USB $bus/$dev to $VM_NAME"
+    fi
+    ;;
+  remove)
+    # libvirt may already have dropped it; failure here is harmless.
+    detach_device "$bus" "$dev" || true
+    ;;
+  *) die "unknown action: $action" ;;
+esac
